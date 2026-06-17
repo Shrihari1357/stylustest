@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stylus Web Tester</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: sans-serif;
+            overflow: hidden;
+            background: #1e1e1e;
+            color: #ffffff;
+        }
+        #info-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            pointer-events: none;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            border: 1px solid #444;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            touch-action: none; /* Prevents scrolling or zooming while drawing */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="info-panel">
+        <strong>Stylus Data Feed:</strong><br>
+        Device Type: <span id="pointer-type">-</span><br>
+        Pressure: <span id="pressure">-</span><br>
+        Tilt X: <span id="tilt-x">-</span>°<br>
+        Tilt Y: <span id="tilt-y">-</span>°
+    </div>
+
+    <canvas id="paintCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('paintCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Metrics panel elements
+        const typeEl = document.getElementById('pointer-type');
+        const pressEl = document.getElementById('pressure');
+        const tiltXEl = document.getElementById('tilt-x');
+        const tiltYEl = document.getElementById('tilt-y');
+
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        // Resize canvas to fill the screen dynamically
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Listen for pointer down event (mouse, touch, or pen)
+        canvas.addEventListener('pointerdown', (e) => {
+            isDrawing = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+            updateMetrics(e);
+        });
+
+        // Track and draw strokes based on pointer movements
+        canvas.addEventListener('pointermove', (e) => {
+            updateMetrics(e);
+            if (!isDrawing) return;
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(e.clientX, e.clientY);
+
+            // Configure dynamic stroke properties based on pen inputs
+            if (e.pointerType === 'pen') {
+                ctx.strokeStyle = '#00ffcc';
+                // Base width * pressure value
+                ctx.lineWidth = 1 + (e.pressure * 15); 
+            } else {
+                // Fallback style for mouse or standard touch
+                ctx.strokeStyle = '#ff007f';
+                ctx.lineWidth = 4;
+            }
+
+            ctx.stroke();
+            lastX = e.clientX;
+            lastY = e.clientY;
+        });
+
+        // Stop drawing when pointer leaves the surface
+        canvas.addEventListener('pointerup', () => isDrawing = false);
+        canvas.addEventListener('pointercancel', () => isDrawing = false);
+
+        // Render live technical details on screen
+        function updateMetrics(e) {
+            typeEl.textContent = e.pointerType;
+            pressEl.textContent = e.pointerType === 'pen' ? e.pressure.toFixed(3) : 'N/A (Use Stylus)';
+            tiltXEl.textContent = e.tiltX;
+            tiltYEl.textContent = e.tiltY;
+        }
+    </script>
+</body>
+</html>
